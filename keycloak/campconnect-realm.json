@@ -1,0 +1,102 @@
+{
+  "realm": "campconnect",
+  "enabled": true,
+  "displayName": "CampConnect",
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "roles": {
+    "realm": [
+      {
+        "name": "ADMIN",
+        "description": "Platform administrator"
+      },
+      {
+        "name": "ORGANIZER",
+        "description": "Can manage events"
+      },
+      {
+        "name": "USER",
+        "description": "Authenticated participant"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "campconnect-web",
+      "name": "CampConnect Angular frontend",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": [
+        "http://localhost:4200/*"
+      ],
+      "webOrigins": [
+        "http://localhost:4200"
+      ],
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "camp-admin",
+      "email": "admin@campconnect.local",
+      "firstName": "Camp",
+      "lastName": "Admin",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Admin123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ADMIN",
+        "USER"
+      ]
+    },
+    {
+      "username": "organizer",
+      "email": "organizer@campconnect.local",
+      "firstName": "Event",
+      "lastName": "Organizer",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Organizer123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ORGANIZER",
+        "USER"
+      ]
+    },
+    {
+      "username": "camper",
+      "email": "camper@campconnect.local",
+      "firstName": "Demo",
+      "lastName": "Camper",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Camper123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "USER"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,364 @@
+name: campconnect
+
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-campconnect_user_service}
+    ports:
+      - "${MYSQL_PORT:-3307}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [campconnect]
+
+  postgres-camping:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-campconnect}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: ${POSTGRES_DB:-campconnect_camping}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [campconnect]
+
+  event-mongodb:
+    image: mongo:8.0
+    ports:
+      - "${EVENT_MONGO_PORT:-27017}:27017"
+    volumes:
+      - event-mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [campconnect]
+
+  notification-mongodb:
+    image: mongo:8.0
+    ports:
+      - "${NOTIFICATION_MONGO_PORT:-27018}:27017"
+    volumes:
+      - notification-mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [campconnect]
+
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-campconnect}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-change-me}
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [campconnect]
+
+  kafka:
+    image: apache/kafka:3.9.1
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+    networks: [campconnect]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2.5
+    command: start-dev --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-change-me}
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-8180}
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "${KEYCLOAK_PORT:-8180}:8080"
+    volumes:
+      - ./keycloak/campconnect-realm.json:/opt/keycloak/data/import/campconnect-realm.json:ro
+      - keycloak-data:/opt/keycloak/data
+    networks: [campconnect]
+
+  eureka:
+    build:
+      context: .
+      dockerfile: docker/java-service.Dockerfile
+      args:
+        SERVICE_REPOSITORY: ${EUREKA_REPOSITORY:-https://github.com/leaderscampconnect/eureka-server.git}
+        SERVICE_REF: ${EUREKA_REF:-main}
+    environment:
+      SERVER_PORT: 8761
+    ports:
+      - "${EUREKA_PORT:-8761}:8761"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8761/"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    networks: [campconnect]
+
+  config-server:
+    build:
+      context: .
+      dockerfile: docker/java-service.Dockerfile
+      args:
+        SERVICE_REPOSITORY: ${CONFIG_SERVER_REPOSITORY:-https://github.com/leaderscampconnect/ConfigServer.git}
+        SERVICE_REF: ${CONFIG_SERVER_REF:-main}
+    environment:
+      SERVER_PORT: 8099
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8761/eureka/
+    ports:
+      - "${CONFIG_SERVER_PORT:-8099}:8099"
+    depends_on:
+      eureka:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8099/api-camping/default"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+    networks: [campconnect]
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: docker/java-service.Dockerfile
+      args:
+        SERVICE_REPOSITORY: ${NOTIFICATION_SERVICE_REPOSITORY:-https://github.com/leaderscampconnect/notification-service.git}
+        SERVICE_REF: ${NOTIFICATION_SERVICE_REF:-main}
+    environment:
+      SERVER_PORT: 8082
+      CONFIG_SERVER_URL: http://config-server:8099
+      EUREKA_URL: http://eureka:8761/eureka/
+      MONGODB_URI: mongodb://notification-mongodb:27017/notification_db
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT:-8082}:8082"
+    depends_on:
+      notification-mongodb:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8082/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+    networks: [campconnect]
+
+  event-service:
+    build:
+      context: .
+      dockerfile: docker/java-service.Dockerfile
+      args:
+        SERVICE_REPOSITORY: ${EVENT_SERVICE_REPOSITORY:-https://github.com/leaderscampconnect/event-service.git}
+        SERVICE_REF: ${EVENT_SERVICE_REF:-main}
+    environment:
+      SERVER_PORT: 8081
+      CONFIG_SERVER_URL: http://config-server:8099
+      EUREKA_URL: http://eureka:8761/eureka/
+      MONGODB_URI: mongodb://event-mongodb:27017/event_db
+      NOTIFICATION_SERVICE_URL: http://notification-service:8082
+    ports:
+      - "${EVENT_SERVICE_PORT:-8081}:8081"
+    depends_on:
+      event-mongodb:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+    networks: [campconnect]
+
+  user-service:
+    build:
+      context: .
+      dockerfile: docker/java-service.Dockerfile
+      args:
+        SERVICE_REPOSITORY: ${USER_SERVICE_REPOSITORY:-https://github.com/leaderscampconnect/UserService.git}
+        SERVICE_REF: ${USER_SERVICE_REF:-main}
+    environment:
+      SERVER_PORT: 8110
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8099
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-campconnect_user_service}?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-me}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8761/eureka/
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-campconnect}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-change-me}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_HOST: kafka
+      SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-replace-me}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-replace-me}
+    ports:
+      - "${USER_SERVICE_PORT:-8110}:8110"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8110/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    networks: [campconnect]
+
+  api-camping:
+    build:
+      context: .
+      dockerfile: docker/java-service.Dockerfile
+      args:
+        SERVICE_REPOSITORY: ${CAMPING_SERVICE_REPOSITORY:-https://github.com/leaderscampconnect/api-camping.git}
+        SERVICE_REF: ${CAMPING_SERVICE_REF:-main}
+    environment:
+      SERVER_PORT: 8083
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8099
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-camping:5432/${POSTGRES_DB:-campconnect_camping}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-campconnect}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8761/eureka/
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER:-campconnect}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-change-me}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-replace-me}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-replace-me}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-replace-me}
+      APP_STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_replace_me}
+      APP_STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-pk_test_replace_me}
+      APP_STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_replace_me}
+      APP_STRIPE_FRONTEND_BASE_URL: http://localhost:${FRONTEND_PORT:-4200}
+      SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-replace-me}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-replace-me}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:-replace-with-at-least-32-characters}
+    ports:
+      - "${CAMPING_SERVICE_PORT:-8083}:8083"
+    depends_on:
+      postgres-camping:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sS", "http://localhost:8083/api/"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    networks: [campconnect]
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: docker/java-service.Dockerfile
+      args:
+        SERVICE_REPOSITORY: ${GATEWAY_REPOSITORY:-https://github.com/IhebBoughanmi/api-gateway.git}
+        SERVICE_REF: ${GATEWAY_REF:-feat/team-routing-security-swagger}
+    environment:
+      SERVER_PORT: 9001
+      EUREKA_URL: http://eureka:8761/eureka/
+      KEYCLOAK_ISSUER_URI: http://localhost:${KEYCLOAK_PORT:-8180}/realms/campconnect
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/campconnect/protocol/openid-connect/certs
+      CORS_ALLOWED_ORIGINS: http://localhost:${FRONTEND_PORT:-4200}
+    ports:
+      - "${GATEWAY_PORT:-9001}:9001"
+    depends_on:
+      keycloak:
+        condition: service_started
+      event-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      api-camping:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9001/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 20s
+    networks: [campconnect]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend-service.Dockerfile
+      args:
+        SERVICE_REPOSITORY: ${FRONTEND_REPOSITORY:-https://github.com/IhebBoughanmi/CampConnectFrontWebDis.git}
+        SERVICE_REF: ${FRONTEND_REF:-feat/api-integration-dashboard}
+    ports:
+      - "${FRONTEND_PORT:-4200}:80"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks: [campconnect]
+
+networks:
+  campconnect:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  postgres-data:
+  event-mongo-data:
+  notification-mongo-data:
+  rabbitmq-data:
+  kafka-data:
+  keycloak-data:
