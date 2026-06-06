@@ -128,6 +128,7 @@ services:
       args:
         SERVICE_REPOSITORY: ${EUREKA_REPOSITORY:-https://github.com/leaderscampconnect/eureka-server.git}
         SERVICE_REF: ${EUREKA_REF:-main}
+        SERVICE_REVISION: ${EUREKA_REVISION:-}
     environment:
       SERVER_PORT: 8761
     ports:
@@ -147,6 +148,7 @@ services:
       args:
         SERVICE_REPOSITORY: ${CONFIG_SERVER_REPOSITORY:-https://github.com/leaderscampconnect/ConfigServer.git}
         SERVICE_REF: ${CONFIG_SERVER_REF:-main}
+        SERVICE_REVISION: ${CONFIG_SERVER_REVISION:-}
     environment:
       SERVER_PORT: 8099
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka:8761/eureka/
@@ -170,6 +172,7 @@ services:
       args:
         SERVICE_REPOSITORY: ${NOTIFICATION_SERVICE_REPOSITORY:-https://github.com/leaderscampconnect/notification-service.git}
         SERVICE_REF: ${NOTIFICATION_SERVICE_REF:-main}
+        SERVICE_REVISION: ${NOTIFICATION_SERVICE_REVISION:-}
     environment:
       SERVER_PORT: 8082
       CONFIG_SERVER_IMPORT: configserver:http://config-server:8099
@@ -198,6 +201,7 @@ services:
       args:
         SERVICE_REPOSITORY: ${EVENT_SERVICE_REPOSITORY:-https://github.com/leaderscampconnect/event-service.git}
         SERVICE_REF: ${EVENT_SERVICE_REF:-main}
+        SERVICE_REVISION: ${EVENT_SERVICE_REVISION:-}
     environment:
       SERVER_PORT: 8081
       CONFIG_SERVER_IMPORT: configserver:http://config-server:8099
@@ -227,6 +231,7 @@ services:
       args:
         SERVICE_REPOSITORY: ${USER_SERVICE_REPOSITORY:-https://github.com/leaderscampconnect/UserService.git}
         SERVICE_REF: ${USER_SERVICE_REF:-main}
+        SERVICE_REVISION: ${USER_SERVICE_REVISION:-}
     environment:
       SERVER_PORT: 8110
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8099
@@ -268,6 +273,7 @@ services:
       args:
         SERVICE_REPOSITORY: ${CAMPING_SERVICE_REPOSITORY:-https://github.com/leaderscampconnect/api-camping.git}
         SERVICE_REF: ${CAMPING_SERVICE_REF:-main}
+        SERVICE_REVISION: ${CAMPING_SERVICE_REVISION:-}
     environment:
       SERVER_PORT: 8083
       SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8099
@@ -312,6 +318,7 @@ services:
       args:
         SERVICE_REPOSITORY: ${GATEWAY_REPOSITORY:-https://github.com/IhebBoughanmi/api-gateway.git}
         SERVICE_REF: ${GATEWAY_REF:-feat/team-routing-security-swagger}
+        SERVICE_REVISION: ${GATEWAY_REVISION:-}
     environment:
       SERVER_PORT: 9001
       EUREKA_URL: http://eureka:8761/eureka/
@@ -346,6 +353,7 @@ services:
       args:
         SERVICE_REPOSITORY: ${FRONTEND_REPOSITORY:-https://github.com/IhebBoughanmi/CampConnectFrontWebDis.git}
         SERVICE_REF: ${FRONTEND_REF:-feat/api-integration-dashboard}
+        SERVICE_REVISION: ${FRONTEND_REVISION:-}
     ports:
       - "${FRONTEND_PORT:-4200}:80"
     depends_on:
