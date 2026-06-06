@@ -117,6 +117,10 @@ gateway and frontend refs are integration branches until their upstream pull
 requests are merged. After merge, use the organization repositories with
 `main`.
 
+Each repository also has a pinned `*_REVISION` commit. This prevents Docker's
+build cache from silently reusing stale source when a branch moves. Update the
+ref and revision together whenever the deployment is intentionally upgraded.
+
 ## Troubleshooting
 
 - Inspect a service with `docker compose logs -f <service>`.
