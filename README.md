@@ -101,6 +101,11 @@ Environment variables in Compose intentionally override service files that
 still reference `localhost`. Once all shared service configurations are cleaned
 up, the same variables remain valid for CI/CD and cloud deployment.
 
+Event and notification services use a required Config Server import in the
+team stack. Their ports, databases, Eureka registration, actuator, Swagger,
+and synchronous notification endpoint are served by Config Server; environment
+variables only supply deployment-specific values to those central properties.
+
 The UserService readiness dependency uses the actuator liveness group, so an
 unconfigured optional SMTP account does not block the gateway. Its aggregate
 `/actuator/health` endpoint still reports mail connectivity for diagnostics.

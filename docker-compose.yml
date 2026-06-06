@@ -172,7 +172,8 @@ services:
         SERVICE_REF: ${NOTIFICATION_SERVICE_REF:-main}
     environment:
       SERVER_PORT: 8082
-      CONFIG_SERVER_URL: http://config-server:8099
+      CONFIG_SERVER_IMPORT: configserver:http://config-server:8099
+      CONFIG_SERVER_FAIL_FAST: "true"
       EUREKA_URL: http://eureka:8761/eureka/
       MONGODB_URI: mongodb://notification-mongodb:27017/notification_db
     ports:
@@ -199,7 +200,8 @@ services:
         SERVICE_REF: ${EVENT_SERVICE_REF:-main}
     environment:
       SERVER_PORT: 8081
-      CONFIG_SERVER_URL: http://config-server:8099
+      CONFIG_SERVER_IMPORT: configserver:http://config-server:8099
+      CONFIG_SERVER_FAIL_FAST: "true"
       EUREKA_URL: http://eureka:8761/eureka/
       MONGODB_URI: mongodb://event-mongodb:27017/event_db
       NOTIFICATION_SERVICE_URL: http://notification-service:8082
