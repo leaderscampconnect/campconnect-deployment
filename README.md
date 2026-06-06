@@ -101,6 +101,10 @@ Environment variables in Compose intentionally override service files that
 still reference `localhost`. Once all shared service configurations are cleaned
 up, the same variables remain valid for CI/CD and cloud deployment.
 
+The UserService readiness dependency uses the actuator liveness group, so an
+unconfigured optional SMTP account does not block the gateway. Its aggregate
+`/actuator/health` endpoint still reports mail connectivity for diagnostics.
+
 ## Repository Overrides
 
 Every build accepts a repository URL and Git ref from `.env`. The default

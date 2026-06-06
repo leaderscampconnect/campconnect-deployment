@@ -239,6 +239,7 @@ services:
       KAFKA_HOST: kafka
       SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-replace-me}
       SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-replace-me}
+      MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
     ports:
       - "${USER_SERVICE_PORT:-8110}:8110"
     depends_on:
@@ -251,7 +252,7 @@ services:
       config-server:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8110/actuator/health"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:8110/actuator/health/liveness"]
       interval: 10s
       timeout: 5s
       retries: 18
