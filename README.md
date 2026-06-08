@@ -121,6 +121,13 @@ Each repository also has a pinned `*_REVISION` commit. This prevents Docker's
 build cache from silently reusing stale source when a branch moves. Update the
 ref and revision together whenever the deployment is intentionally upgraded.
 
+## Git Workflow
+
+Team changes use focused branches, pull requests, and typed commit messages
+such as `feat:`, `fix:`, `test:`, and `docs:`. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for the shared commit rules and review
+checklist.
+
 ## Troubleshooting
 
 - Inspect a service with `docker compose logs -f <service>`.
