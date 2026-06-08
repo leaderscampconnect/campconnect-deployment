@@ -316,8 +316,8 @@ services:
       context: .
       dockerfile: docker/java-service.Dockerfile
       args:
-        SERVICE_REPOSITORY: ${GATEWAY_REPOSITORY:-https://github.com/IhebBoughanmi/api-gateway.git}
-        SERVICE_REF: ${GATEWAY_REF:-feat/team-routing-security-swagger}
+        SERVICE_REPOSITORY: ${GATEWAY_REPOSITORY:-https://github.com/leaderscampconnect/api-gateway.git}
+        SERVICE_REF: ${GATEWAY_REF:-main}
         SERVICE_REVISION: ${GATEWAY_REVISION:-}
     environment:
       SERVER_PORT: 9001
@@ -351,8 +351,8 @@ services:
       context: .
       dockerfile: docker/frontend-service.Dockerfile
       args:
-        SERVICE_REPOSITORY: ${FRONTEND_REPOSITORY:-https://github.com/IhebBoughanmi/CampConnectFrontWebDis.git}
-        SERVICE_REF: ${FRONTEND_REF:-feat/api-integration-dashboard}
+        SERVICE_REPOSITORY: ${FRONTEND_REPOSITORY:-https://github.com/leaderscampconnect/CampConnectFrontWebDis.git}
+        SERVICE_REF: ${FRONTEND_REF:-main}
         SERVICE_REVISION: ${FRONTEND_REVISION:-}
     ports:
       - "${FRONTEND_PORT:-4200}:80"

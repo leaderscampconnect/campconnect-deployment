@@ -112,10 +112,8 @@ unconfigured optional SMTP account does not block the gateway. Its aggregate
 
 ## Repository Overrides
 
-Every build accepts a repository URL and Git ref from `.env`. The default
-gateway and frontend refs are integration branches until their upstream pull
-requests are merged. After merge, use the organization repositories with
-`main`.
+Every build accepts a repository URL and Git ref from `.env`. The committed
+defaults use the reviewed organization `main` branches.
 
 Each repository also has a pinned `*_REVISION` commit. This prevents Docker's
 build cache from silently reusing stale source when a branch moves. Update the
