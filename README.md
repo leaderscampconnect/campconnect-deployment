@@ -90,6 +90,15 @@ Docker-internal URL. This avoids the common `localhost` container mismatch.
 5. Postpone or cancel an event and show participant notifications.
 6. Create/update a user to show RabbitMQ and Kafka events in service logs.
 
+For the complete Events/Notifications defense workflow, expected results,
+architecture explanation, and oral question bank, see
+[Events and Notifications Defense Report](docs/EVENTS_NOTIFICATIONS_DEFENSE_REPORT.md).
+Run the verified scenario with:
+
+```powershell
+.\scripts\demo-events-notifications.ps1
+```
+
 ## Configuration and Secrets
 
 `.env` is ignored by Git. The committed `.env.example` contains placeholders
