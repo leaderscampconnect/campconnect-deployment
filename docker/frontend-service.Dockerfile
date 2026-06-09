@@ -23,4 +23,4 @@ COPY --from=source /source/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /workspace/dist/campconnect-front/browser /usr/share/nginx/html
 EXPOSE 80
 HEALTHCHECK --interval=15s --timeout=3s --retries=5 \
-  CMD wget -qO- http://localhost/ >/dev/null || exit 1
+  CMD wget -qO- http://127.0.0.1/ >/dev/null || exit 1
