@@ -17,11 +17,13 @@ flowchart LR
     Gateway --> Users[user-service]
     Gateway --> Camping[api-camping]
     Events --> Notifications
+    Events -- OpenFeign user validation --> Users
     Events --> EventMongo[(MongoDB)]
     Notifications --> NotificationMongo[(MongoDB)]
     Users --> MySQL[(MySQL)]
     Camping --> Postgres[(PostgreSQL)]
     Users --> RabbitMQ
+    RabbitMQ -- User lifecycle events --> Notifications
     Camping --> RabbitMQ
     Users --> Kafka
     Gateway --> Eureka
@@ -84,11 +86,17 @@ Docker-internal URL. This avoids the common `localhost` container mismatch.
 
 1. Sign in as `organizer`, create and publish an event, then verify it appears
    for logged-out visitors.
-2. Sign in as `camper`, reserve a seat, and verify a persisted notification.
-3. Fill event capacity, register another user, and demonstrate the waitlist.
-4. Cancel a confirmed registration and demonstrate automatic waitlist promotion.
-5. Postpone or cancel an event and show participant notifications.
-6. Create/update a user to show RabbitMQ and Kafka events in service logs.
+2. Create a user in the teammate-owned UserService and verify that RabbitMQ
+   asynchronously creates a persisted welcome notification.
+3. Register that numeric user ID for an event and show Event Service using
+   OpenFeign to validate it through Eureka before accepting the registration.
+4. Try an unknown user ID and show the coherent `404` rejection from the
+   cross-member synchronous call.
+5. Update and delete the teammate user and show RabbitMQ creating a profile
+   update notification and then cleaning up that user's notifications.
+6. Fill event capacity, demonstrate the waitlist, then cancel a confirmed
+   registration and show automatic waitlist promotion.
+7. Postpone or cancel an event and show participant notifications.
 
 Run the verified scenario with:
 

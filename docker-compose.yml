@@ -181,10 +181,18 @@ services:
       EUREKA_INSTANCE_HOSTNAME: notification-service
       EUREKA_FAIL_FAST: "true"
       MONGODB_URI: mongodb://notification-mongodb:27017/notification_db
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-campconnect}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-change-me}
+      RABBITMQ_ENABLED: "true"
+      RABBITMQ_FAIL_FAST: "true"
     ports:
       - "${NOTIFICATION_SERVICE_PORT:-8082}:8082"
     depends_on:
       notification-mongodb:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
       config-server:
         condition: service_healthy
@@ -217,6 +225,8 @@ services:
       event-mongodb:
         condition: service_healthy
       notification-service:
+        condition: service_healthy
+      user-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8081/actuator/health"]
