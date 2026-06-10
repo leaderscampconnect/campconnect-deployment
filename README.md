@@ -1,8 +1,8 @@
 # CampConnect Team Deployment
 
 This repository starts the full distributed application from the team GitHub
-repositories. It builds every Java and Angular service from source, so no
-prebuilt `target/*.jar` or `dist/` directory is required.
+repositories. It builds the Java, Node.js, and Angular services from source, so
+no prebuilt `target/*.jar`, `node_modules/`, or `dist/` directory is required.
 
 ## Architecture
 
@@ -13,7 +13,7 @@ flowchart LR
     Browser --> Keycloak[Keycloak :8180]
     Gateway --> Keycloak
     Gateway --> Events[event-service]
-    Gateway --> Notifications[notification-service]
+    Gateway --> Notifications[notification-service<br/>Node.js + Express]
     Gateway --> Users[user-service]
     Gateway --> Camping[api-camping]
     Events --> Notifications
@@ -110,9 +110,9 @@ Environment variables in Compose intentionally override service files that
 still reference `localhost`. Once all shared service configurations are cleaned
 up, the same variables remain valid for CI/CD and cloud deployment.
 
-Event and notification services use a required Config Server import in the
-team stack. Their ports, databases, Eureka registration, actuator, Swagger,
-and synchronous notification endpoint are served by Config Server; environment
+The Event service uses Spring Cloud Config directly. The Node.js Notification
+service loads the same centralized Spring property document over REST and maps
+its port, MongoDB URI, Eureka URL, actuator path, and Swagger path. Environment
 variables only supply deployment-specific values to those central properties.
 
 The UserService readiness dependency uses the actuator liveness group, so an
