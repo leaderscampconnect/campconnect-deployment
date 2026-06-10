@@ -168,7 +168,7 @@ services:
   notification-service:
     build:
       context: .
-      dockerfile: docker/java-service.Dockerfile
+      dockerfile: docker/node-service.Dockerfile
       args:
         SERVICE_REPOSITORY: ${NOTIFICATION_SERVICE_REPOSITORY:-https://github.com/leaderscampconnect/notification-service.git}
         SERVICE_REF: ${NOTIFICATION_SERVICE_REF:-main}
@@ -178,6 +178,8 @@ services:
       CONFIG_SERVER_IMPORT: configserver:http://config-server:8099
       CONFIG_SERVER_FAIL_FAST: "true"
       EUREKA_URL: http://eureka:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: notification-service
+      EUREKA_FAIL_FAST: "true"
       MONGODB_URI: mongodb://notification-mongodb:27017/notification_db
     ports:
       - "${NOTIFICATION_SERVICE_PORT:-8082}:8082"
