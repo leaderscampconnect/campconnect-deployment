@@ -18,6 +18,14 @@
       {
         "name": "USER",
         "description": "Authenticated participant"
+      },
+      {
+        "name": "SITE_OWNER",
+        "description": "Camping Site Owner"
+      },
+      {
+        "name": "CAMPER",
+        "description": "Camper"
       }
     ]
   },
@@ -52,7 +60,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "Admin123!",
+          "value": "admin",
           "temporary": false
         }
       ],
@@ -96,6 +104,44 @@
       ],
       "realmRoles": [
         "USER"
+      ]
+    },
+    {
+      "username": "molkmomo84@gmail.com",
+      "email": "molkmomo84@gmail.com",
+      "firstName": "Molk",
+      "lastName": "User",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "USER",
+        "CAMPER"
+      ]
+    },
+    {
+      "username": "molk.saouabi@gmail.com",
+      "email": "molk.saouabi@gmail.com",
+      "firstName": "Molk",
+      "lastName": "Owner",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "USER",
+        "SITE_OWNER"
       ]
     }
   ]
