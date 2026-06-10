@@ -93,6 +93,10 @@ Docker-internal URL. This avoids the common `localhost` container mismatch.
 For the complete Events/Notifications defense workflow, expected results,
 architecture explanation, and oral question bank, see
 [Events and Notifications Defense Report](docs/EVENTS_NOTIFICATIONS_DEFENSE_REPORT.md).
+
+For a criterion-by-criterion evaluation audit, including the exact RabbitMQ
+gap and required synchronous/asynchronous demonstration scenarios, see
+[AWD Criteria Compliance Report](docs/RAPPORT_CONFORMITE_CRITERES_AWD.md).
 Run the verified scenario with:
 
 ```powershell
