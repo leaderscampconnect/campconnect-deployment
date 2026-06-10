@@ -1,13 +1,13 @@
 # Events and Notifications Defense Report
 
-Status verified on June 9, 2026.
+Status verified on June 10, 2026.
 
 ## 1. Your Exact Scope
 
 Your individual technical scope is:
 
 - `event-service`
-- `notification-service`
+- `notification-service` implemented with Node.js and Express
 - their MongoDB databases
 - synchronous communication from Events to Notifications with OpenFeign
 - their routes and role rules in the API Gateway
@@ -23,9 +23,11 @@ contribution is the nonvisual Events/Notifications API integration layer.
 
 > I implemented an advanced event lifecycle with capacity, registration,
 > waitlisting and automatic promotion, plus a persisted notification center.
-> Both services use MongoDB, register with Eureka, load centralized
-> configuration, communicate synchronously through OpenFeign, and are protected
-> by role-based Keycloak authorization at the API Gateway.
+> Events is a Spring Boot microservice and Notifications is a Node.js/Express
+> microservice. Both use MongoDB, register with Eureka, load centralized
+> configuration, communicate synchronously over HTTP through the Event
+> OpenFeign client, and are protected by role-based Keycloak authorization at
+> the API Gateway.
 
 ## 2. What Is Implemented
 
@@ -52,16 +54,17 @@ contribution is the nonvisual Events/Notifications API integration layer.
 
 ### Notification service
 
+- Node.js, Express, and Mongoose
 - persisted MongoDB CRUD
 - recipient, event, type, and read-state filtering
 - unread count
 - mark one notification as read
 - mark all recipient notifications as read
 - timestamps for creation, update, and read operations
-- validation DTOs
-- structured exception responses
+- request-contract validation
+- centralized Express error middleware
 - Swagger/OpenAPI
-- unit and controller tests
+- API contract and configuration tests
 
 ### Platform integration
 
@@ -78,7 +81,8 @@ contribution is the nonvisual Events/Notifications API integration layer.
 
 | Professor criterion | Current status | Evidence |
 | --- | --- | --- |
-| Individual Spring Boot CRUD | Complete | Events and Notifications both expose CRUD |
+| Individual Spring Boot CRUD | Complete | Event service exposes advanced CRUD |
+| Collaborative advanced technology CRUD | Complete | Notification service uses Node.js, Express, Mongoose, and MongoDB |
 | Advanced domain | Complete | lifecycle, waitlist, promotion, occupancy, read state |
 | MongoDB or PostgreSQL | Complete | separate MongoDB databases |
 | Eureka | Complete | services and Gateway register/discover by name |
@@ -107,7 +111,7 @@ flowchart LR
     Browser --> Keycloak[Keycloak :8180]
     Gateway --> Keycloak
     Gateway -->|lb://event-service| Events[event-service :8081]
-    Gateway -->|lb://notification-service| Notifications[notification-service :8082]
+    Gateway -->|lb://notification-service| Notifications[Node.js + Express :8082]
     Events -->|OpenFeign HTTP| Notifications
     Events --> EventMongo[(event_db)]
     Notifications --> NotificationMongo[(notification_db)]
@@ -115,7 +119,7 @@ flowchart LR
     Notifications --> Eureka
     Gateway --> Eureka
     Config[Config Server :8099] --> Events
-    Config --> Notifications
+    Config -->|REST property document| Notifications
 ```
 
 ### Request path
@@ -128,7 +132,8 @@ flowchart LR
 5. The Gateway applies the route-specific authorization rule.
 6. The Gateway removes `/api` for Events and Notifications.
 7. The request is load-balanced to the Eureka service name.
-8. The service validates the DTO, executes business rules, and persists data.
+8. The service validates the request contract, executes business rules, and
+   persists data.
 9. Event operations create notification records through OpenFeign.
 
 ## 5. Event Domain Model
@@ -461,18 +466,18 @@ The script queries both MongoDB containers and proves:
 
 Say:
 
-> MongoDB `_id` is physically an ObjectId, while Spring Data exposes it as a
-> Java String in the API model.
+> MongoDB `_id` is physically an ObjectId. Spring Data maps the Event ID to a
+> Java String, while Mongoose maps the Notification ID to the API `id` string.
 
 ### Minute 11-12: Tests and honest conclusion
 
 State:
 
 - Event service: 9 tests passing
-- Notification service: 5 tests passing
+- Notification service: 9 tests passing
 - Gateway: 11 tests passing
 - automated live scenario: passing
-- total relevant backend automated tests: 25
+- total relevant backend automated tests: 29
 
 Finish with:
 
@@ -542,7 +547,8 @@ cd ..\event-service
 mvn test
 
 cd ..\notification-service
-mvn test
+npm install
+npm test
 
 cd ..\team-api-gateway
 .\mvnw.cmd test
@@ -736,7 +742,9 @@ and event ID.
 
 **39. Is the API ID a String or ObjectId?**
 
-Java exposes it as `String`; MongoDB stores the generated `_id` as `ObjectId`.
+MongoDB stores generated `_id` values as `ObjectId`. Spring Data exposes the
+Event ID as a Java `String`; Mongoose converts the Notification ID to the
+response `id` string.
 
 **40. How does data survive container restart?**
 
@@ -761,13 +769,16 @@ use optimistic locking with `@Version` or an atomic conditional Mongo update.
 
 **44. Why use DTOs instead of exposing entities?**
 
-DTOs define the API contract, isolate persistence, apply validation, and avoid
-accidentally exposing internal fields.
+Explicit request and response contracts isolate persistence, apply validation,
+and avoid accidentally exposing internal fields. Events uses Java DTO records;
+Notifications performs the same separation with validation and response
+mapping functions.
 
 **45. What validation technology is used?**
 
-Jakarta Bean Validation annotations such as `@NotBlank`, `@Size`, `@Min`,
-`@Max`, and `@DecimalMin`.
+Events uses Jakarta Bean Validation annotations such as `@NotBlank`, `@Size`,
+`@Min`, `@Max`, and `@DecimalMin`. Notifications uses centralized JavaScript
+contract validation before calling its service layer.
 
 **46. Where is cross-field validation performed?**
 
@@ -775,7 +786,8 @@ In the service layer, for example end date after start date.
 
 **47. What does the global exception handler provide?**
 
-A consistent body with timestamp, HTTP status, error, message, path, and
+Both Spring's controller advice and Express error middleware return a
+consistent body with timestamp, HTTP status, error, message, path, and
 field-level validation errors.
 
 **48. Why not return 200 with an error message?**
@@ -815,7 +827,7 @@ In Keycloak realm roles, delivered in the JWT `realm_access.roles` claim.
 
 **55. Why convert roles?**
 
-Spring's `hasRole("ADMIN")` expects authority `ROLE_ADMIN`.
+The Spring Cloud Gateway's `hasRole("ADMIN")` expects authority `ROLE_ADMIN`.
 
 **56. Why centralize security?**
 
@@ -894,11 +906,15 @@ causing lost events.
 
 **70. What does Eureka provide?**
 
-Service registration and discovery by logical application name.
+Service registration and discovery by logical application name. Spring uses
+its Eureka client; the Node service uses Eureka's REST registration and
+heartbeat API under the same `notification-service` name.
 
 **71. What does Config Server provide?**
 
-Centralized environment-aware configuration outside service binaries.
+Centralized environment-aware configuration outside service binaries. The
+Spring Event client imports it natively; the Node service reads the same
+`/notification-service/default` property document over REST.
 
 **72. What does fail-fast mean?**
 
@@ -914,16 +930,19 @@ values such as MongoDB and Eureka URLs.
 
 **74. What kinds of tests exist?**
 
-Mockito service tests, MockMvc validation tests, WebFlux Gateway security tests,
-and the live end-to-end PowerShell showcase.
+Mockito and MockMvc Event tests, Node API contract tests with Supertest,
+WebFlux Gateway security tests, and the live end-to-end PowerShell showcase.
 
 **75. Why mock repositories in unit tests?**
 
-It isolates business rules, runs quickly, and makes edge cases deterministic.
+Event repository mocks isolate business rules. Notification route tests inject
+a fake service, which isolates HTTP contracts and makes edge cases
+deterministic.
 
 **76. What does the controller test verify?**
 
-Invalid JSON contracts produce structured HTTP 400 responses with field errors.
+Invalid JSON contracts produce structured HTTP 400 responses with field errors
+in both the Spring and Express APIs.
 
 **77. What does the Gateway test verify?**
 
@@ -931,7 +950,7 @@ Public access, 401/403 behavior, allowed roles, and Keycloak role conversion.
 
 **78. How many related backend tests currently pass?**
 
-25: 9 Events, 5 Notifications, and 11 Gateway.
+29: 9 Events, 9 Notifications, and 11 Gateway.
 
 **79. Why pin Git revisions in Compose?**
 
@@ -943,6 +962,53 @@ Docker cache from silently using older source.
 Typed Event and Notification models, API services using relative Gateway URLs,
 Keycloak initialization, and a bearer-token interceptor. I did not replace the
 team's routed UI.
+
+### Node.js and Express
+
+**81. Why use Node.js and Express for Notifications?**
+
+It satisfies the team's advanced-technology requirement and fits a
+notification service well because it is lightweight, I/O-oriented, and mainly
+performs HTTP and MongoDB operations.
+
+**82. Does OpenFeign require the server to be Spring Boot?**
+
+No. OpenFeign is only the Event service's HTTP client. The remote server may be
+implemented with any technology as long as it preserves the HTTP paths, JSON
+contract, and status codes.
+
+**83. How can a Node service register with a Java Eureka server?**
+
+Eureka exposes a language-neutral REST API. The service posts its instance
+metadata, sends periodic heartbeats, and deregisters during graceful shutdown.
+
+**84. How does Node consume Spring Config Server?**
+
+Config Server exposes JSON over HTTP. The adapter reads the property sources,
+resolves Spring-style environment placeholders, and maps them to Node runtime
+configuration.
+
+**85. How is MongoDB accessed from Node?**
+
+Through Mongoose schemas and models. The schema defines indexes, enum
+constraints, timestamps, nullable fields, and the `notifications` collection.
+
+**86. Did the migration require frontend or Event API changes?**
+
+No. It was contract-preserving. Existing routes, request fields, response
+fields, status codes, OpenAPI path, health path, service name, and port remain
+the same.
+
+**87. Where is Notification security implemented?**
+
+At the Spring Cloud Gateway using Keycloak JWT roles. The Node service remains
+private behind the Gateway in the intended production architecture.
+
+**88. How did you verify cross-technology compatibility?**
+
+With Node contract tests, a real MongoDB CRUD round trip, Config Server loading,
+Eureka registration, the Spring Event Feign scenario, Gateway role tests, and
+the full Docker showcase.
 
 ## 14. Questions Where You Must Be Honest
 
@@ -1005,7 +1071,7 @@ Answer:
 5. Move registrations to a separate collection for large events.
 6. Replace in-memory filtering with indexed Mongo repository queries.
 7. Add Testcontainers integration tests.
-8. Add CI with Maven, Angular, Compose validation, and image scanning.
+8. Add CI with Maven, npm, Angular, Compose validation, and image scanning.
 9. Add Prometheus metrics, Grafana dashboards, tracing, and alerting.
 10. Add Kubernetes manifests and cloud deployment.
 
