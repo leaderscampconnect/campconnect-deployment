@@ -2,6 +2,7 @@
   "realm": "campconnect",
   "enabled": true,
   "displayName": "CampConnect",
+  "loginTheme": "campconnect",
   "registrationAllowed": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,

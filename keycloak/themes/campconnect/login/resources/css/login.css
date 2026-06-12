@@ -1,0 +1,135 @@
+:root {
+  --camp-ink: #172b44;
+  --camp-accent: #96952f;
+  --camp-paper: #fcfbfa;
+  --camp-muted: #667281;
+}
+
+body,
+.login-pf body,
+.pf-v5-c-login {
+  background:
+    radial-gradient(circle at 15% 18%, rgba(150, 149, 47, 0.28), transparent 28rem),
+    radial-gradient(circle at 88% 85%, rgba(242, 198, 109, 0.16), transparent 24rem),
+    linear-gradient(145deg, #102238, var(--camp-ink)) !important;
+  min-height: 100vh;
+}
+
+.pf-v5-c-login__container {
+  grid-template-areas: "header" "main" "footer";
+  grid-template-columns: minmax(20rem, 30rem);
+}
+
+#kc-header,
+.pf-v5-c-login__header {
+  color: #ffffff;
+  margin-bottom: 1.25rem;
+  text-align: center;
+}
+
+#kc-header-wrapper {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  font-size: 0;
+  gap: 0.85rem;
+}
+
+#kc-header-wrapper::before {
+  background: url("../img/campconnect-mark.svg") center / contain no-repeat;
+  content: "";
+  display: block;
+  height: 5.25rem;
+  width: 5.25rem;
+}
+
+#kc-header-wrapper::after {
+  content: "CampConnect";
+  font-size: 1.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.card-pf,
+.pf-v5-c-card {
+  background: rgba(252, 251, 250, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 1.25rem;
+  box-shadow: 0 1.5rem 4rem rgba(4, 13, 24, 0.35);
+  overflow: hidden;
+}
+
+.pf-v5-c-card__body {
+  padding: 2rem;
+}
+
+#kc-page-title {
+  color: var(--camp-ink);
+  font-size: 1.65rem;
+  font-weight: 800;
+}
+
+.pf-v5-c-form__label,
+.control-label {
+  color: var(--camp-muted);
+  font-weight: 700;
+}
+
+.pf-v5-c-form-control,
+.form-control {
+  border-color: #d7d2c8;
+  border-radius: 0.65rem;
+  min-height: 2.8rem;
+}
+
+.pf-v5-c-form-control:focus-within,
+.form-control:focus {
+  border-color: var(--camp-accent);
+  box-shadow: 0 0 0 0.2rem rgba(150, 149, 47, 0.18);
+}
+
+.pf-v5-c-button.pf-m-primary,
+#kc-login {
+  background: var(--camp-accent);
+  border: 0;
+  border-radius: 0.65rem;
+  color: #ffffff;
+  font-weight: 800;
+  min-height: 2.85rem;
+}
+
+.pf-v5-c-button.pf-m-primary:hover,
+#kc-login:hover {
+  background: #7b7a27;
+}
+
+a {
+  color: #74731f;
+  font-weight: 700;
+}
+
+a:hover {
+  color: var(--camp-ink);
+}
+
+#kc-info-wrapper,
+.login-pf-signup {
+  background: #f4f1ea;
+  color: var(--camp-muted);
+}
+
+.alert-error,
+.pf-v5-c-alert.pf-m-danger {
+  border-radius: 0.65rem;
+}
+
+@media (max-width: 640px) {
+  .pf-v5-c-login__container {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 1rem;
+  }
+
+  .pf-v5-c-card__body {
+    padding: 1.4rem;
+  }
+}

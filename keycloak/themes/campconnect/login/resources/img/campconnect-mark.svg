@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-labelledby="title">
+  <title id="title">CampConnect</title>
+  <rect width="120" height="120" rx="28" fill="#172b44"/>
+  <path d="M19 88 50 33l12 21 9-16 30 50H19Z" fill="#96952f"/>
+  <path d="M37 88 61 48l24 40H37Z" fill="#fcfbfa"/>
+  <path d="M54 88 61 70l8 18H54Z" fill="#172b44"/>
+  <circle cx="88" cy="30" r="9" fill="#f2c66d"/>
+</svg>

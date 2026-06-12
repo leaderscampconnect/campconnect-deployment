@@ -114,11 +114,41 @@ services:
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-change-me}
       KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-8180}
       KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
     ports:
       - "${KEYCLOAK_PORT:-8180}:8080"
     volumes:
       - ./keycloak/campconnect-realm.json:/opt/keycloak/data/import/campconnect-realm.json:ro
+      - ./keycloak/themes/campconnect:/opt/keycloak/themes/campconnect:ro
       - keycloak-data:/opt/keycloak/data
+    networks: [campconnect]
+
+  keycloak-config:
+    image: quay.io/keycloak/keycloak:26.2.5
+    entrypoint: ["/bin/bash", "-ec"]
+    command:
+      - |
+        for attempt in {1..30}; do
+          if /opt/keycloak/bin/kcadm.sh config credentials \
+            --server http://keycloak:8080 \
+            --realm master \
+            --user "$$KEYCLOAK_ADMIN" \
+            --password "$$KEYCLOAK_ADMIN_PASSWORD"; then
+            /opt/keycloak/bin/kcadm.sh update realms/campconnect \
+              -s loginTheme=campconnect
+            exit 0
+          fi
+          sleep 2
+        done
+        exit 1
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-change-me}
+    depends_on:
+      keycloak:
+        condition: service_started
+    restart: "no"
     networks: [campconnect]
 
   eureka:
@@ -219,6 +249,7 @@ services:
       EUREKA_URL: http://eureka:8761/eureka/
       MONGODB_URI: mongodb://event-mongodb:27017/event_db
       NOTIFICATION_SERVICE_URL: http://notification-service:8082
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info,prometheus
     ports:
       - "${EVENT_SERVICE_PORT:-8081}:8081"
     depends_on:
@@ -340,8 +371,8 @@ services:
     ports:
       - "${GATEWAY_PORT:-9001}:9001"
     depends_on:
-      keycloak:
-        condition: service_started
+      keycloak-config:
+        condition: service_completed_successfully
       event-service:
         condition: service_healthy
       notification-service:
@@ -356,6 +387,49 @@ services:
       timeout: 5s
       retries: 18
       start_period: 20s
+    networks: [campconnect]
+
+  prometheus:
+    image: prom/prometheus:v3.12.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    depends_on:
+      event-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks: [campconnect]
+
+  grafana:
+    image: grafana/grafana:13.0.2
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-me}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/campconnect-overview.json
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_healthy
     networks: [campconnect]
 
   frontend:
@@ -385,3 +459,5 @@ volumes:
   rabbitmq-data:
   kafka-data:
   keycloak-data:
+  prometheus-data:
+  grafana-data:

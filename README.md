@@ -11,6 +11,10 @@ flowchart LR
     Browser --> Frontend[Angular + Nginx]
     Frontend --> Gateway[API Gateway :9001]
     Browser --> Keycloak[Keycloak :8180]
+    Prometheus[Prometheus :9090] --> Events
+    Prometheus --> Notifications
+    Prometheus --> Keycloak
+    Grafana[Grafana :3000] --> Prometheus
     Gateway --> Keycloak
     Gateway --> Events[event-service]
     Gateway --> Notifications[notification-service<br/>Node.js + Express]
@@ -55,6 +59,8 @@ want to erase all database and Keycloak data.
 | Keycloak console | http://localhost:8180 |
 | RabbitMQ console | http://localhost:15672 |
 | Config Server sample | http://localhost:8099/api-camping/default |
+| Prometheus targets | http://localhost:9090/targets |
+| Grafana dashboard | http://localhost:3000/d/campconnect-overview |
 
 ## Demo Accounts
 
@@ -67,6 +73,50 @@ These accounts are development fixtures imported into the `campconnect` realm:
 | `camper` | `Camper123!` | `USER` |
 
 Change or remove these accounts before any non-local deployment.
+
+## Keycloak Theme
+
+The `campconnect` realm uses the custom `campconnect` login theme from
+`keycloak/themes/campconnect`. It provides CampConnect branding, responsive
+login styling, and customized login and registration text.
+
+`keycloak-config` applies the theme to both fresh imports and existing Keycloak
+volumes every time the stack starts. This avoids deleting realm data just to
+activate a theme.
+
+## Monitoring
+
+Prometheus scrapes:
+
+- Event Service Spring Boot and JVM metrics from `/actuator/prometheus`.
+- Notification Service Node.js process and HTTP metrics from
+  `/actuator/prometheus`.
+- Keycloak runtime metrics from its internal management endpoint.
+
+Grafana automatically provisions the Prometheus datasource and the
+`CampConnect Services Overview` dashboard. The dashboard includes service
+availability, request rates, memory usage, and target status.
+
+Development credentials come from `GRAFANA_ADMIN_USER` and
+`GRAFANA_ADMIN_PASSWORD` in `.env`. Change the default password before sharing
+the deployment.
+
+## CI/CD
+
+GitHub Actions run tests and builds in the Event Service, Notification Service,
+and frontend repositories. The deployment pipeline validates Compose,
+Keycloak/Grafana JSON, Prometheus configuration, and integration image builds.
+
+The deployment workflow also supports a protected manual production deployment.
+Configure these GitHub environment secrets before running it:
+
+- `DEPLOY_HOST`: server hostname or IP address.
+- `DEPLOY_USER`: SSH user with Docker access.
+- `DEPLOY_SSH_KEY`: private SSH key.
+- `DEPLOY_PATH`: absolute path of the deployment repository on the server.
+
+Run `Platform CI/CD` with the `deploy` input enabled after the CI job is green.
+Use a protected GitHub `production` environment to require approval.
 
 ## API Surface
 
