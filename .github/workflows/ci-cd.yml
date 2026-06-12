@@ -1,0 +1,74 @@
+name: Platform CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy the validated stack to the configured server
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose
+        run: docker compose config --quiet
+
+      - name: Validate JSON configuration
+        run: |
+          python -m json.tool keycloak/campconnect-realm.json >/dev/null
+          python -m json.tool monitoring/grafana/dashboards/campconnect-overview.json >/dev/null
+
+      - name: Validate Prometheus configuration
+        run: |
+          docker run --rm \
+            --entrypoint /bin/promtool \
+            -v "$PWD/monitoring/prometheus:/etc/prometheus:ro" \
+            prom/prometheus:v3.12.0 \
+            check config /etc/prometheus/prometheus.yml
+
+      - name: Build application images
+        run: docker compose build event-service notification-service frontend
+
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+
+    steps:
+      - name: Configure SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy CampConnect
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd '$DEPLOY_PATH' \
+            && git pull --ff-only origin main \
+            && docker compose up --build -d \
+            && docker compose ps"
